@@ -38,6 +38,10 @@ $ python Genetic-Algorithm.py
 
 ## Result and Analyze:
 
+* It seems that the maximum fitness in each generation of part A, part B, part C and part D, have a decreasing, decreasing, increasing, increasing trend, respectively.
+
+* It seems that the average fitness in each generation of part A, part B, part C and part D, have a decreasing, decreasing, decreasing, increasing trend, respectively.
+
 ### 1st Run:
 
 * Fitness plot:
