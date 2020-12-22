@@ -23,10 +23,28 @@ $ python Genetic-Algorithm.py
 * 10% elitism
 * Swap mutation
 
-## 3. Result and Analyze:
+## Result and Analyze:
 
+### 1st Run:
+
+* Fitness plot:
 ![representation](https://github.com/VakhshooriEhsan/EvolutionaryComputing2020-HW2-Genetic-Algorithm/blob/master/docs/imgs/f1.PNG?raw=true)
 
+* List of the winning strategy for each generation:
+[`docs/datas/d1.txt`](https://github.com/VakhshooriEhsan/EvolutionaryComputing2020-HW2-Genetic-Algorithm/blob/master/docs/datas/d1.txt)
+
+### 2nd Run:
+* Fitness plot:
 ![representation](https://github.com/VakhshooriEhsan/EvolutionaryComputing2020-HW2-Genetic-Algorithm/blob/master/docs/imgs/f2.PNG?raw=true)
 
+* List of the winning strategy for each generation:
+[`docs/datas/d2.txt`](https://github.com/VakhshooriEhsan/EvolutionaryComputing2020-HW2-Genetic-Algorithm/blob/master/docs/datas/d2.txt)
+
+
+### 3rd Run:
+* fitness plot:
 ![representation](https://github.com/VakhshooriEhsan/EvolutionaryComputing2020-HW2-Genetic-Algorithm/blob/master/docs/imgs/f3.PNG?raw=true)
+
+* List of the winning strategy for each generation:
+[`docs/datas/d3.txt`](https://github.com/VakhshooriEhsan/EvolutionaryComputing2020-HW2-Genetic-Algorithm/blob/master/docs/datas/d3.txt)
+
