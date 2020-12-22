@@ -11,9 +11,8 @@ def Initialisation(P, S, B):
         mems[i][B-1] = S - int(mems[i].sum())
     return mems
 
-def Fitness(mems, index):
+def Fitness(mems, mem):
     score = 0.0
-    mem = mems[index]
     P = len(mems)
     B = len(mem)
     for i in range(P):
@@ -24,129 +23,315 @@ def Fitness(mems, index):
                 tmp += 1
             elif(mem[j] < rival[j]):
                 tmp -= 1
-        if(tmp>=0):
+        if(tmp>0):
             score += 1
     return score/P
 
-def Parent_selection(mems, num):
-    size = len(mems)
+global GMEMS
+def iter(mem):
+    return Fitness(GMEMS, mem)
+
+def NewFitness(mems, mem):
+    score = 0.0
+    P = len(mems)
+    B = len(mem)
+    for i in range(P):
+        rival = mems[i].copy()
+        m = mem.copy()
+        tmp=0
+        for j in range(B):
+            if(m[j] > rival[j]):
+                tmp += 1
+                if(j<B-1):
+                    a = m[j]-rival[j]
+                    aa = int(1.0*a/(B-j-1))
+                    a = a-aa
+                    for k in range(j+1, B):
+                        m[k] += min(a, 1) + aa
+                        a-=1
+            elif(m[j] < rival[j]):
+                tmp -= 1
+                if(j<B-1):
+                    a = rival[j]-m[j]
+                    aa = int(1.0*a/(B-j-1))
+                    a = a-aa
+                    for k in range(j+1, B):
+                        rival[k] += min(a, 1) + aa
+                        a-=1
+        if(tmp>0):
+            score += 1
+    return score/P
+
+def Newiter(mem):
+    return NewFitness(GMEMS, mem)
+
+def mySort(mems, iter):
+    global GMEMS
+    GMEMS = mems
+    mems = mems.tolist()
+    mems.sort(key=iter)
+    mems = np.array(mems)
+    return mems
+
+def Tournament_selection(mems, k, Fitness):
+    P = len(mems)
     nmems = []
-    for i in np.random.permutation(size)[:num]:
+    for i in np.random.permutation(P)[:k]:
         nmems += [mems[i]]
-    nmems.sort(key=Fitness, reverse=True)
-    return [nmems[0], nmems[1]]
+    m0 = 0
+    m1 = 1
+    if(Fitness(mems, nmems[m0])<Fitness(mems, nmems[m1])):
+        m0, m1 = m1, m0
+    for i in range(2, k):
+        if(Fitness(mems, nmems[m1])<Fitness(mems, nmems[i])):
+            m1 = i
+        if(Fitness(mems, nmems[m0])<Fitness(mems, nmems[m1])):
+            m0, m1 = m1, m0
+    return [nmems[m0], nmems[m1]]
 
-def Recombination(mem1, mem2, prob):
-    if(np.random.rand() > prob):
-        return [mem1, mem2]
-    size = len(mem1)
-    p = np.random.randint(1, size)
-    nmem1 = mem1[0:p]
-    nmem2 = mem2[0:p]
-    for i in range(size):
-        if nmem1.count(mem2[i])==0:
-            nmem1 += [mem2[i]]
-        if nmem2.count(mem1[i])==0:
-            nmem2 += [mem1[i]]
-    return [nmem1, nmem2]
+def Proportionate_selection(mems, Fitness):
+    P = len(mems)
+    k = 0
+    for i in range(P):
+        k += int(Fitness(mems, mems[i]) * P + 1)
+    r = np.random.randint(k) + 1
+    m0 = 0
+    while(r>0):
+        r -= int(Fitness(mems, mems[i]) * P + 1)
+        m0 += 1
+    m0 -= 1
+    r = np.random.randint(k) + 1
+    m1 = 0
+    while(r>0):
+        r -= int(Fitness(mems, mems[i]) * P + 1)
+        m1 += 1
+    m1 -= 1
+    return [mems[m0], mems[m1]]
 
-def Mutation(mem, prob):
+def Swap_mutation(mem, prob):
     if(np.random.rand() > prob):
         return mem
-    size = len(mem)
-    p = np.random.permutation(size)[:2]
+    B = len(mem)
+    p = np.random.permutation(B)[:2]
     mem[p[0]], mem[p[1]] = mem[p[1]], mem[p[0]]
     return mem
 
-def Survival_selection(mems, child):
-    size = len(mems)
-    cf = Fitness(child)
-    for i in range(size):
-        if Fitness(mems[i]) <= cf:
-            mems.insert(i, child)
-            mems.pop()
-            break
+def Boundary_mutation(mem, prob):
+    if(np.random.rand() > prob):
+        return mem
+    B = len(mem)
+    p = np.random.randint(B)
+    a = mem[p]
+    mem[p] = 0
+    for i in range(a):
+        p = np.random.randint(B)
+        mem[p] += 1
+    return mem
 
-def Plt_board(mems):
-    size = len(mems)
-    yb = math.ceil(math.sqrt(size))
-    xb = math.ceil(size/yb)
-    n = len(mems[0])
-    for i in range(size):
-        plt.subplot(xb, yb, i+1)
-        chessboard = np.zeros((n, n))
-        chessboard[1::2,0::2] = 1
-        chessboard[0::2,1::2] = 1
-        plt.imshow(chessboard, cmap='binary')
-        for j in range(n):
-            x = j
-            y = mems[i][j]
-            plt.text(x, y, '♕', fontsize=40/xb, ha='center', va='center', color='black' if (x - y) % 2 == 0 else 'white')
+def survival_elitism(mems, child, ELITISM):
+    P = len(mems)
+    j = np.random.randint(int(P*(1-ELITISM)))
+    mems[j] = child
+    return mems
 
 # Variables initialisation:
 
 S = 20 # number of soldiers
 B = 4 # number of battles
 P = 50 # number of population
-ELITISM = 0.1 # elitism
+ELITISM = 0.1 # elitism probability
+ITER = 100
+K = 5 # number of select for Tournament selection
+Mprob = 1 # mutation probability
+data = [] # used for analyze
+Mmems = Initialisation(P, S, B) # population initialisation
 
-# n = 8 # number of queens | size of chessboard
-# m = 100 # number of population
-# num = 5 # number of select for parent selection
-# Rprob = 1.0 # Recombination probability
-# Mprob = 0.8 # Mutation probability
-# T = 10000 # Termination condition
-# data = [] # used for analyze
-
+# ------------------------------------ Part A -----------------------------------
 
 # Genetic-algorithm:
 
-mems = Initialisation(P, S, B) # population initialisation
-for i in range(P):
-    print(mems[i])
-    print(Fitness(mems, i))
+mems = Mmems.copy()
+mems = mySort(mems, iter)
+data = []
+data += [mems.copy()]
 
-# mems.sort(key=Fitness, reverse=True) # sort members by fitness
-# data += [mems.copy()]
-
-# while Fitness(mems[0]) < 1 and T > 0 :
-#     T -= 1
-#     parents = Parent_selection(mems, num)
-#     childs = Recombination(parents[0], parents[1], Rprob)
-#     childs[0] = Mutation(childs[0], Mprob)
-#     childs[1] = Mutation(childs[1], Mprob)
-#     Survival_selection(mems, childs[0])
-#     Survival_selection(mems, childs[1])
-#     data += [mems.copy()]
+for _ in range(ITER):
+    parents = Tournament_selection(mems, K, Fitness)
+    childs = parents.copy()
+    childs[0] = Swap_mutation(childs[0], Mprob)
+    childs[1] = Swap_mutation(childs[1], Mprob)
+    survival_elitism(mems, childs[0], ELITISM)
+    survival_elitism(mems, childs[1], ELITISM)
+    mems = mySort(mems, iter)
+    data += [mems.copy()]
 
 
 # Analyze:
 
-# maxFit = [] # max fitness
-# k = 10
-# avgFits = [] # avg of k-max fitness
-# l = len(data) # last result
-# t = 12 # number of result show
+maxFit = [] # max fitness
+avgFits = [] # avg of k-max fitness
+l = len(data) # last result
+print("Part A")
 
-# for i in range(l):
-#     maxFit += [Fitness(data[i][0])]
-#     tmp = 0
-#     for j in range(min(k, len(data[i]))):
-#         tmp += Fitness(data[i][j])
-#     avgFits += [tmp/k]
+for i in range(l):
+    maxFit += [Fitness(data[i], data[i][P-1])]
+    print(data[i][P-1])
+    tmp = 0
+    for j in range(P):
+        tmp += Fitness(data[i], data[i][j])
+    avgFits += [1.0*tmp/P]
 
-# plt.figure(1)
-# Plt_board(data[l-1][:t])
+plt.figure(1)
 
-# plt.figure(2)
-# plt.subplot(2, 1, 1)
-# plt.plot(maxFit, '.-')
-# plt.title('Fitness Analyze')
-# plt.ylabel('Max Fitness')
+plt.subplot(2, 1, 1)
+plt.plot(maxFit, '.-')
+plt.title('Fitness Analyze Part A')
+plt.ylabel('Max Fitness')
 
-# plt.subplot(2, 1, 2)
-# plt.plot(avgFits, '.-')
-# plt.xlabel('Generations')
-# plt.ylabel('Avg of k-max Fitness')
+plt.subplot(2, 1, 2)
+plt.plot(avgFits, '.-')
+plt.xlabel('Generations')
+plt.ylabel('Avg Fitness')
 
-# plt.show()
+# ------------------------------------ Part B -----------------------------------
+
+# Genetic-algorithm:
+
+mems = Mmems.copy()
+mems = mySort(mems, iter)
+data = []
+data += [mems.copy()]
+print("Part B")
+
+for _ in range(ITER):
+    parents = Tournament_selection(mems, K, Fitness)
+    childs = parents.copy()
+    childs[0] = Boundary_mutation(childs[0], Mprob)
+    childs[1] = Boundary_mutation(childs[1], Mprob)
+    survival_elitism(mems, childs[0], ELITISM)
+    survival_elitism(mems, childs[1], ELITISM)
+    mems = mySort(mems, iter)
+    data += [mems.copy()]
+
+
+# Analyze:
+
+maxFit = [] # max fitness
+avgFits = [] # avg of k-max fitness
+l = len(data) # last result
+
+for i in range(l):
+    maxFit += [Fitness(data[i], data[i][P-1])]
+    print(data[i][P-1])
+    tmp = 0
+    for j in range(P):
+        tmp += Fitness(data[i], data[i][j])
+    avgFits += [1.0*tmp/P]
+
+plt.figure(2)
+
+plt.subplot(2, 1, 1)
+plt.plot(maxFit, '.-')
+plt.title('Fitness Analyze Part B')
+plt.ylabel('Max Fitness')
+
+plt.subplot(2, 1, 2)
+plt.plot(avgFits, '.-')
+plt.xlabel('Generations')
+plt.ylabel('Avg Fitness')
+
+# ------------------------------------ Part C -----------------------------------
+
+# Genetic-algorithm:
+
+mems = Mmems.copy()
+mems = mySort(mems, iter)
+data = []
+data += [mems.copy()]
+print("Part C")
+
+for _ in range(ITER):
+    parents = Proportionate_selection(mems, Fitness)
+    childs = parents.copy()
+    childs[0] = Swap_mutation(childs[0], Mprob)
+    childs[1] = Swap_mutation(childs[1], Mprob)
+    survival_elitism(mems, childs[0], ELITISM)
+    survival_elitism(mems, childs[1], ELITISM)
+    mems = mySort(mems, iter)
+    data += [mems.copy()]
+
+
+# Analyze:
+
+maxFit = [] # max fitness
+avgFits = [] # avg of k-max fitness
+l = len(data) # last result
+
+for i in range(l):
+    maxFit += [Fitness(data[i], data[i][P-1])]
+    print(data[i][P-1])
+    tmp = 0
+    for j in range(P):
+        tmp += Fitness(data[i], data[i][j])
+    avgFits += [1.0*tmp/P]
+
+plt.figure(3)
+
+plt.subplot(2, 1, 1)
+plt.plot(maxFit, '.-')
+plt.title('Fitness Analyze Part C')
+plt.ylabel('Max Fitness')
+
+plt.subplot(2, 1, 2)
+plt.plot(avgFits, '.-')
+plt.xlabel('Generations')
+plt.ylabel('Avg Fitness')
+
+# ------------------------------------ Part D -----------------------------------
+
+# Genetic-algorithm:
+
+mems = Mmems.copy()
+mems = mySort(mems, Newiter)
+data = []
+data += [mems.copy()]
+
+for _ in range(ITER):
+    parents = Tournament_selection(mems, K, NewFitness)
+    childs = parents.copy()
+    childs[0] = Swap_mutation(childs[0], Mprob)
+    childs[1] = Swap_mutation(childs[1], Mprob)
+    survival_elitism(mems, childs[0], ELITISM)
+    survival_elitism(mems, childs[1], ELITISM)
+    mems = mySort(mems, Newiter)
+    data += [mems.copy()]
+
+
+# Analyze:
+
+maxFit = [] # max fitness
+avgFits = [] # avg of k-max fitness
+l = len(data) # last result
+print("Part D")
+
+for i in range(l):
+    maxFit += [NewFitness(data[i], data[i][P-1])]
+    print(data[i][P-1])
+    tmp = 0
+    for j in range(P):
+        tmp += NewFitness(data[i], data[i][j])
+    avgFits += [1.0*tmp/P]
+
+plt.figure(4)
+
+plt.subplot(2, 1, 1)
+plt.plot(maxFit, '.-')
+plt.title('Fitness Analyze Part D')
+plt.ylabel('Max Fitness')
+
+plt.subplot(2, 1, 2)
+plt.plot(avgFits, '.-')
+plt.xlabel('Generations')
+plt.ylabel('Avg Fitness')
+
+plt.show()
